@@ -1,3 +1,3 @@
-# adalight
+# AdalightCockpit
 
-Small Java control panel for my adalight. 
+Small Java control panel for my adalight.
