@@ -8,3 +8,5 @@ All the credit goes to them!
 
 Soon I´ll add how-to for the arduino / processing / rxtx part
 (the repo is very fresh and highly WIP)
+
+P.S. I wrote the buttons / GUI in my childhood - I´ll soon upgrade it to Swing :) 
