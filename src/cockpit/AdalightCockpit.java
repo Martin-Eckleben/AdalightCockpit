@@ -1,9 +1,11 @@
+package cockpit;
+
 import processing.core.*;
 import processing.serial.*;
 import java.awt.*;
 import java.awt.image.*;
 
-public class EckesAdalightControl extends PApplet {
+public class AdalightCockpit extends PApplet {
 
 	private static final long serialVersionUID = -69884399989157722L;
 
@@ -432,13 +434,13 @@ public class EckesAdalightControl extends PApplet {
 			
 		}
 		
-		//wenn maus gedrückt
+		//wenn maus gedrï¿½ckt
 		if(mousePressed){
 			
 			//und maus x einen btn trifft
 			if(mouseX>abstand && mouseX<(btn_width+abstand)){
 				
-				//gehe über alle btns
+				//gehe ï¿½ber alle btns
 				for(int index=0;index<btns.length;index++){
 					//schaue ob maus darin liegt
 					if(mouseY>(index*btn_height) + ((index+1)*abstand) 				//linke grenze
