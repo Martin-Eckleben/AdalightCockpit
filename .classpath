@@ -7,7 +7,11 @@
 	<classpathentry kind="lib" path="lib/processing/gluegen-rt.jar"/>
 	<classpathentry kind="lib" path="lib/processing/jogl-all-natives-windows-amd64.jar"/>
 	<classpathentry kind="lib" path="lib/processing/jogl-all.jar"/>
-	<classpathentry kind="lib" path="lib/serial/RXTXcomm.jar"/>
+	<classpathentry kind="lib" path="lib/serial/RXTXcomm.jar">
+		<attributes>
+			<attribute name="org.eclipse.jdt.launching.CLASSPATH_ATTR_LIBRARY_PATH_ENTRY" value="AdalightCockpit/native"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="lib" path="lib/serial/serial.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
