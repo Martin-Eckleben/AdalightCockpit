@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>test</title>
+</head>
+<body>
+
+    <script type="text/javascript">
+        
+        let startx = 8
+        let starty = 9
+        let x = startx
+        let y = starty
+        let maxx=17
+        let maxy=10
+        let result = ''
+
+        // down middle to down right
+        for(x;x<maxx;x++){
+            result += '{"x":'+x+', "y":'+y+'},'
+        }
+        x--
+        result += "\n"
+
+        // down right to top right
+        for(y=y-1;y!=0;y--){
+            result += '{"x":'+x+', "y":'+y+'},'
+        }
+        result += '{"x":'+x+', "y":'+y+'},'
+        result += "\n"
+
+        // top right to top left
+        for(x;x!=0;x--){
+            result += '{"x":'+x+', "y":'+y+'},'
+        }
+        result += '{"x":'+x+', "y":'+y+'},'
+        result += "\n"
+
+        // top left to down left
+        for(y;y<maxy-1;y++){
+            result += '{"x":'+x+', "y":'+y+'},'
+        }
+        result += '{"x":'+x+', "y":'+y+'},'
+        result += "\n"
+
+        // down left to down middle
+        for(x;x<startx-1;x++){
+            result += '{"x":'+x+', "y":'+y+'},'
+        }
+        result += '{"x":'+x+', "y":'+y+'},'
+        result += "\n"
+
+        console.log(result)
+
+        // // Bottom edge, left half
+        // { "x": 3, "y": 4 }, { "x": 2, "y": 4 }, { "x": 1, "y": 4 },
+        // // Left edge
+        // { "x": 0, "y": 4 }, { "x": 0, "y": 3 }, { "x": 0, "y": 2 }, { "x": 0, "y": 1 },
+        // // Top edge
+        // { "x": 0, "y": 0 }, { "x": 1, "y": 0 }, { "x": 2, "y": 0 }, { "x": 3, "y": 0 }, { "x": 4, "y": 0 },
+        // { "x": 5, "y": 0 }, { "x": 6, "y": 0 }, { "x": 7, "y": 0 }, { "x": 8, "y": 0 }, { "x": 9, "y": 0 },
+        // // Right edge
+        // { "x": 9, "y": 1 }, { "x": 9, "y": 2 }, { "x": 9, "y": 3 }, { "x": 9, "y": 4 },
+        // // Bottom edge, right half
+        // { "x": 8, "y": 4 }, { "x": 7, "y": 4 }, { "x": 6, "y": 4 }
+
+    </script>
+
+</body>
+</html>
