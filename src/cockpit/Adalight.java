@@ -4,6 +4,8 @@ import processing.core.*;
 import processing.serial.*;
 import java.awt.*;
 import java.awt.image.*;
+import java.util.Timer;
+import java.util.TimerTask;
 
 
 public class Adalight extends PApplet {
@@ -20,6 +22,26 @@ public class Adalight extends PApplet {
 		this.mode = mode;
 		if(mode == Mode.OFF)
 			this.draw_off();
+	}
+	
+	// this is for single color draw only
+	// we dont want that to be done the whole time but just sometimes so the lights dont die :)
+	Timer timer = null;
+	public void setMode(Color c) {
+		this.mode = Mode.SingleColor;
+		this.singleColor = c;
+		this.draw_singleColor();
+		
+		if(this.timer!=null)
+			this.timer.cancel();
+		
+		this.timer = new Timer();
+		timer.schedule(new TimerTask() {
+			@Override
+			public void run() {
+				draw_singleColor();
+			}
+		}, 0, 5000);
 	}
 	
 	// CONFIGURABLE PROGRAM CONSTANTS --------------------------------------------
@@ -264,16 +286,11 @@ public class Adalight extends PApplet {
 	// PER_FRAME PROCESSING ------------------------------------------------------
 
 	public void draw () {
-		
-		System.out.println(this.mode);
-		
 		if(this.mode == Mode.Adalight)
 			draw_adalight();
-		else if(this.mode == Mode.SingleColor)
-			draw_singleColor();
 	}
 
-	private void draw_singleColor() {
+	public void draw_singleColor() {
 		
 		System.out.println(this.singleColor.getRed()+" "+this.singleColor.getGreen()+" "+this.singleColor.getBlue());
 		

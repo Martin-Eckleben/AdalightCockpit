@@ -80,8 +80,7 @@ public class Main {
     	        colorchooser.getSelectionModel().addChangeListener(new ChangeListener() {
 					@Override
 					public void stateChanged(ChangeEvent e) {
-						adalight.singleColor = colorchooser.getColor();
-						adalight.setMode(Mode.SingleColor);
+						adalight.setMode(colorchooser.getColor());
 					}
 				});
     	        panel.add(colorchooser);
@@ -91,13 +90,15 @@ public class Main {
     	        frame.setVisible(true);
     	        
     	        // run adalight cockpit in another thread indefinitely
-    	        new Thread() {
+    	        Thread drawthread = new Thread() {
     	            @Override public void run() {
     	              setPriority( Thread.MAX_PRIORITY );
     	              while ( true )
     	            	  adalight.draw();
     	            }
-    	        }.start();
+    	        };
+    	        
+//    	        drawthread.start();
             }
         });
 	}
