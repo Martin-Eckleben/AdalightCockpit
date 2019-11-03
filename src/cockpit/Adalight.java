@@ -4,12 +4,24 @@ import processing.core.*;
 import processing.serial.*;
 import java.awt.*;
 import java.awt.image.*;
-import javax.swing.*;
 
-public class AdalightCockpit extends PApplet {
+
+public class Adalight extends PApplet {
 
 	private static final long serialVersionUID = -69884399989157722L;
+	
+	private Mode mode = Mode.OFF;
 
+	public Mode getMode() {
+		return mode;
+	}
+
+	public void setMode(Mode mode) {
+		this.mode = mode;
+		if(mode == Mode.OFF)
+			this.draw_off();
+	}
+	
 	// CONFIGURABLE PROGRAM CONSTANTS --------------------------------------------
 
 	// Minimum LED brightness; some users prefer a small amount of backlighting
@@ -111,17 +123,6 @@ public class AdalightCockpit extends PApplet {
 	//		*/
 	//	};
     
-    //colors
-  	int[] blue_c		= new int[]{0,0,255};
-  	int[] red_c			= new int[]{255,0,0};
-  	int[] green_c		= new int[]{0,255,0};
-  	int[] pink_c		= new int[]{200,0,195};
-  	int[] purple_c		= new int[]{60,0,255};
-  	int[] lime_c		= new int[]{100,255,0};
-  	int[] orange_c		= new int[]{255,160,0};
-  	int[] brightblue_c	= new int[]{0,140,255};
-  	int[] off_c			= new int[]{0,0,0};
-    
 	// GLOBAL VARIABLES ---- You probably won't need to modify any of this -------
 
 	byte[]           serialData  = new byte[6 + leds.length * 3];
@@ -134,17 +135,18 @@ public class AdalightCockpit extends PApplet {
 	                 ledBounds;  // Alloc'd only if per-LED captures
 	int[][]          pixelOffset = new int[leds.length][256],
 	                 screenData; // Alloc'd only if full-screen captures
-	PImage[]         preview     = new PImage[displays.length];
 	Serial           port;
 	DisposeHandler   dh; // For disabling LEDs on exit
 
+	Color			 singleColor = new Color(0, 0, 0);
+	
 	// INITIALIZATION ------------------------------------------------------------
 
 	public void setup() {
 	  GraphicsEnvironment     ge;
 	  GraphicsConfiguration[] gc;
 	  GraphicsDevice[]        gd;
-	  int                     d, i, totalWidth, maxHeight, row, col, rowOffset;
+	  int                     d, i, row, col;
 	  int[]                   x = new int[16], y = new int[16];
 	  double                   f, range, step, start;
 
@@ -166,7 +168,7 @@ public class AdalightCockpit extends PApplet {
 
 	  // Initialize screen capture code for each display's dimensions.
 	  dispBounds = new Rectangle[displays.length];
-	  if(useFullScreenCaps == true) {
+	  if(useFullScreenCaps) {
 	    screenData = new int[displays.length][];
 	    // ledBounds[] not used
 	  } else {
@@ -176,7 +178,6 @@ public class AdalightCockpit extends PApplet {
 	  ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
 	  gd = ge.getScreenDevices();
 	  if(nDisplays > gd.length) nDisplays = gd.length;
-	  totalWidth = maxHeight = 0;
 	  for(d=0; d<nDisplays; d++) { // For each display...
 	    try {
 	      bot[d] = new Robot(gd[displays[d][0]]);
@@ -188,11 +189,6 @@ public class AdalightCockpit extends PApplet {
 	    gc              = gd[displays[d][0]].getConfigurations();
 	    dispBounds[d]   = gc[0].getBounds();
 	    dispBounds[d].x = dispBounds[d].y = 0;
-	    preview[d]      = createImage(displays[d][1], displays[d][2], RGB);
-	    preview[d].loadPixels();
-	    totalWidth     += displays[d][1];
-	    if(d > 0) totalWidth++;
-	    if(displays[d][2] > maxHeight) maxHeight = displays[d][2];
 	  }
 
 	  // Precompute locations of every pixel to read when downsampling.
@@ -212,7 +208,7 @@ public class AdalightCockpit extends PApplet {
 	    start = range * (float)leds[i][2] + step * 0.5;
 	    for(row=0; row<16; row++) y[row] = (int)(start + step * (float)row);
 
-	    if(useFullScreenCaps == true) {
+	    if(useFullScreenCaps) {
 	      // Get offset to each pixel within full screen capture
 	      for(row=0; row<16; row++) {
 	        for(col=0; col<16; col++) {
@@ -236,10 +232,6 @@ public class AdalightCockpit extends PApplet {
 	    prevColor[i][0] = prevColor[i][1] = prevColor[i][2] =
 	      minBrightness / 3;
 	  }
-
-	  // Preview window shows all screens side-by-side
-	  size(totalWidth * pixelSize, maxHeight * pixelSize, JAVA2D);
-	  noSmooth();
 
 	  // A special header / magic word is expected by the corresponding LED
 	  // streaming code running on the Arduino.  This only needs to be initialized
@@ -269,146 +261,127 @@ public class AdalightCockpit extends PApplet {
 	// out most of this to bypass the checks and instead just open that port
 	// directly!  (Modify last line in this method with the serial port name.)
 
-	Serial openPort() {
-	  String[] ports;
-	  String   ack;
-	  int      i, start;
-	  Serial   s;
-
-	  ports = Serial.list(); // List of all serial ports/devices on system.
-
-	  for(i=0; i<ports.length; i++) { // For each serial port...
-	    System.out.format("Trying serial port %s\n",ports[i]);
-	    try {
-	      s = new Serial(this, ports[i], 115200);
-	    }
-	    catch(Exception e) {
-	      // Can't open port, probably in use by other software.
-	      continue;
-	    }
-	    // Port open...watch for acknowledgement string...
-	    start = millis();
-	    while((millis() - start) < timeout) {
-	      if((s.available() >= 4) &&
-	        ((ack = s.readString()) != null) &&
-	        ack.contains("Ada\n")) {
-	          return s; // Got it!
-	      }
-	    }
-	    // Connection timed out.  Close port and move on to the next.
-	    s.stop();
-	  }
-
-	  // Didn't locate a device returning the acknowledgment string.
-	  // Maybe it's out there but running the old LEDstream code, which
-	  // didn't have the ACK.  Can't say for sure, so we'll take our
-	  // changes with the first/only serial device out there...
-	  return new Serial(this, ports[0], 115200);
-	}
-
-
 	// PER_FRAME PROCESSING ------------------------------------------------------
 
 	public void draw () {
-	  BufferedImage img;
-	  int           d, i, j, o, c, weight, rb, g, sum, deficit, s2;
-	  int[]         pxls, offs;
-
-	  if(useFullScreenCaps == true ) {
-	    // Capture each screen in the displays array.
-	    for(d=0; d<nDisplays; d++) {
-	      img = bot[d].createScreenCapture(dispBounds[d]);
-	      // Get location of source pixel data
-	      screenData[d] =
-	        ((DataBufferInt)img.getRaster().getDataBuffer()).getData();
-	    }
-	  }
-
-	  weight = 257 - fade; // 'Weighting factor' for new frame vs. old
-	  j      = 6;          // Serial led data follows header / magic word
-
-	  // This computes a single pixel value filtered down from a rectangular
-	  // section of the screen.  While it would seem tempting to use the native
-	  // image scaling in Processing/Java, in practice this didn't look very
-	  // good -- either too pixelated or too blurry, no happy medium.  So
-	  // instead, a "manual" downsampling is done here.  In the interest of
-	  // speed, it doesn't actually sample every pixel within a block, just
-	  // a selection of 256 pixels spaced within the block...the results still
-	  // look reasonably smooth and are handled quickly enough for video.
-
-	  for(i=0; i<leds.length; i++) {  // For each LED...
-	    d = leds[i][0]; // Corresponding display index
-	    if(useFullScreenCaps == true) {
-	      // Get location of source data from prior full-screen capture:
-	      pxls = screenData[d];
-	    } else {
-	      // Capture section of screen (LED bounds rect) and locate data::
-	      img  = bot[d].createScreenCapture(ledBounds[i]);
-	      pxls = ((DataBufferInt)img.getRaster().getDataBuffer()).getData();
-	    }
-	    offs = pixelOffset[i];
-	    rb = g = 0;
-	    for(o=0; o<256; o++) {
-	      c   = pxls[offs[o]];
-	      rb += c & 0x00ff00ff; // Bit trickery: R+B can accumulate in one var
-	      g  += c & 0x0000ff00;
-	    }
-
-	    // Blend new pixel value with the value from the prior frame
-	    ledColor[i][0]  = (short)((((rb >> 24) & 0xff) * weight +
-	                               prevColor[i][0]     * fade) >> 8);
-	    ledColor[i][1]  = (short)(((( g >> 16) & 0xff) * weight +
-	                               prevColor[i][1]     * fade) >> 8);
-	    ledColor[i][2]  = (short)((((rb >>  8) & 0xff) * weight +
-	                               prevColor[i][2]     * fade) >> 8);
-
-	    // Boost pixels that fall below the minimum brightness
-	    sum = ledColor[i][0] + ledColor[i][1] + ledColor[i][2];
-	    if(sum < minBrightness) {
-	      if(sum == 0) { // To avoid divide-by-zero
-	        deficit = minBrightness / 3; // Spread equally to R,G,B
-	        ledColor[i][0] += deficit;
-	        ledColor[i][1] += deficit;
-	        ledColor[i][2] += deficit;
-	      } else {
-	        deficit = minBrightness - sum;
-	        s2      = sum * 2;
-	        // Spread the "brightness deficit" back into R,G,B in proportion to
-	        // their individual contribition to that deficit.  Rather than simply
-	        // boosting all pixels at the low end, this allows deep (but saturated)
-	        // colors to stay saturated...they don't "pink out."
-	        ledColor[i][0] += deficit * (sum - ledColor[i][0]) / s2;
-	        ledColor[i][1] += deficit * (sum - ledColor[i][1]) / s2;
-	        ledColor[i][2] += deficit * (sum - ledColor[i][2]) / s2;
-	      }
-	    }
-
-	    // Apply gamma curve and place in serial output buffer
-	    serialData[j++] = gamma[ledColor[i][0]][0];
-	    serialData[j++] = gamma[ledColor[i][1]][1];
-	    serialData[j++] = gamma[ledColor[i][2]][2];
-	    // Update pixels in preview image
-	    preview[d].pixels[leds[i][2] * displays[d][1] + leds[i][1]] =
-	     (ledColor[i][0] << 16) | (ledColor[i][1] << 8) | ledColor[i][2];
-	  }
-
-	  if(port != null) port.write(serialData); // Issue data to Arduino
-
-	  // Show live preview image(s)
-	  scale(pixelSize);
-	  for(i=d=0; d<nDisplays; d++) {
-	    preview[d].updatePixels();
-	    image(preview[d], i, 0);
-	    i += displays[d][1] + 1;
-	  }
-
-	  //println(frameRate); // How are we doing?
-
-	  // Copy LED color data to prior frame array for next pass
-	  arraycopy(ledColor, 0, prevColor, 0, ledColor.length);
+		
+		System.out.println(this.mode);
+		
+		if(this.mode == Mode.Adalight)
+			draw_adalight();
+		else if(this.mode == Mode.SingleColor)
+			draw_singleColor();
 	}
 
+	private void draw_singleColor() {
+		
+		System.out.println(this.singleColor.getRed()+" "+this.singleColor.getGreen()+" "+this.singleColor.getBlue());
+		
+		int j = 6;          // Serial led data follows header / magic word
+		for(int i=0; i<leds.length; i++) {  // For each LED...
+			serialData[j++]  = (byte)this.singleColor.getRed();
+			serialData[j++]  = (byte)this.singleColor.getGreen();
+			serialData[j++]  = (byte)this.singleColor.getBlue();
+		}
+		if(port != null) port.write(serialData); // Issue data to Arduino
+	}
+	
+	private void draw_adalight() {
+		BufferedImage img;
+		  int           d, i, j, o, c, weight, rb, g, sum, deficit, s2;
+		  int[]         pxls, offs;
 
+		  if(useFullScreenCaps) {
+		    // Capture each screen in the displays array.
+		    for(d=0; d<nDisplays; d++) {
+		      img = bot[d].createScreenCapture(dispBounds[d]);
+		      // Get location of source pixel data
+		      screenData[d] =
+		        ((DataBufferInt)img.getRaster().getDataBuffer()).getData();
+		    }
+		  }
+
+		  weight = 257 - fade; // 'Weighting factor' for new frame vs. old
+		  j      = 6;          // Serial led data follows header / magic word
+
+		  // This computes a single pixel value filtered down from a rectangular
+		  // section of the screen.  While it would seem tempting to use the native
+		  // image scaling in Processing/Java, in practice this didn't look very
+		  // good -- either too pixelated or too blurry, no happy medium.  So
+		  // instead, a "manual" downsampling is done here.  In the interest of
+		  // speed, it doesn't actually sample every pixel within a block, just
+		  // a selection of 256 pixels spaced within the block...the results still
+		  // look reasonably smooth and are handled quickly enough for video.
+
+		  for(i=0; i<leds.length; i++) {  // For each LED...
+		    d = leds[i][0]; // Corresponding display index
+		    if(useFullScreenCaps) {
+		      // Get location of source data from prior full-screen capture:
+		      pxls = screenData[d];
+		    } else {
+		      // Capture section of screen (LED bounds rect) and locate data::
+		      img  = bot[d].createScreenCapture(ledBounds[i]);
+		      pxls = ((DataBufferInt)img.getRaster().getDataBuffer()).getData();
+		    }
+		    offs = pixelOffset[i];
+		    rb = g = 0;
+		    for(o=0; o<256; o++) {
+		      c   = pxls[offs[o]];
+		      rb += c & 0x00ff00ff; // Bit trickery: R+B can accumulate in one var
+		      g  += c & 0x0000ff00;
+		    }
+
+		    // Blend new pixel value with the value from the prior frame
+		    ledColor[i][0]  = (short)((((rb >> 24) & 0xff) * weight +
+		                               prevColor[i][0]     * fade) >> 8);
+		    ledColor[i][1]  = (short)(((( g >> 16) & 0xff) * weight +
+		                               prevColor[i][1]     * fade) >> 8);
+		    ledColor[i][2]  = (short)((((rb >>  8) & 0xff) * weight +
+		                               prevColor[i][2]     * fade) >> 8);
+
+		    // Boost pixels that fall below the minimum brightness
+		    sum = ledColor[i][0] + ledColor[i][1] + ledColor[i][2];
+		    if(sum < minBrightness) {
+		      if(sum == 0) { // To avoid divide-by-zero
+		        deficit = minBrightness / 3; // Spread equally to R,G,B
+		        ledColor[i][0] += deficit;
+		        ledColor[i][1] += deficit;
+		        ledColor[i][2] += deficit;
+		      } else {
+		        deficit = minBrightness - sum;
+		        s2      = sum * 2;
+		        // Spread the "brightness deficit" back into R,G,B in proportion to
+		        // their individual contribition to that deficit.  Rather than simply
+		        // boosting all pixels at the low end, this allows deep (but saturated)
+		        // colors to stay saturated...they don't "pink out."
+		        ledColor[i][0] += deficit * (sum - ledColor[i][0]) / s2;
+		        ledColor[i][1] += deficit * (sum - ledColor[i][1]) / s2;
+		        ledColor[i][2] += deficit * (sum - ledColor[i][2]) / s2;
+		      }
+		    }
+
+		    // Apply gamma curve and place in serial output buffer
+		    serialData[j++] = gamma[ledColor[i][0]][0];
+		    serialData[j++] = gamma[ledColor[i][1]][1];
+		    serialData[j++] = gamma[ledColor[i][2]][2];
+		  }
+
+		  if(port != null) port.write(serialData); // Issue data to Arduino
+
+		  // Copy LED color data to prior frame array for next pass
+		  arraycopy(ledColor, 0, prevColor, 0, ledColor.length);
+	}
+	
+	private void draw_off() {
+		int j = 6;          // Serial led data follows header / magic word
+		for(int i=0; i<leds.length; i++) {  // For each LED...
+			serialData[j++]  = 0;
+			serialData[j++]  = 0;
+			serialData[j++]  = 0;
+		}
+		if(port != null) port.write(serialData); // Issue data to Arduino
+	}
+	
 	// CLEANUP -------------------------------------------------------------------
 
 	// The DisposeHandler is called on program exit (but before the Serial library

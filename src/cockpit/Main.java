@@ -1,10 +1,21 @@
 package cockpit;
 
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.GridBagLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JColorChooser;
 import javax.swing.JFrame;
-import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.border.Border;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 public class Main {
 
@@ -15,19 +26,78 @@ public class Main {
         javax.swing.SwingUtilities.invokeLater(new Runnable() {
             public void run() {
             	
+            	Adalight adalight = new Adalight();
+    	        adalight.setup();
+    	        
+    	        Color background = new Color(255,255,255);
+            	
             	//Create and set up the window.
     	        JFrame frame = new JFrame("Adalight Cockpit");
     	        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-    	        frame.setPreferredSize(new Dimension(500, 500));
-    	        frame.getContentPane().setBackground( new Color(255, 255, 255) );
+    	        frame.setPreferredSize(new Dimension(800, 500));
     	        
-    	        //Add the ubiquitous "Hello World" label.
-    	        JLabel label = new JLabel("Adalight Cockpit");
-    	        frame.getContentPane().add(label);
-
+    	        JPanel panel = new JPanel();
+    	        BoxLayout bl = new BoxLayout(panel, BoxLayout.PAGE_AXIS);
+    	        panel.setLayout(bl);
+    	        Border padding = BorderFactory.createEmptyBorder(10, 10, 10, 10);
+    	        panel.setBorder(padding);
+    	        frame.setContentPane(panel);
+    	        frame.getContentPane().setBackground(background);
+    	        
+    	        // add ui components
+    	        JButton off_btn = new JButton("Off");
+    	        off_btn.setBackground(Color.black);
+    	        off_btn.setForeground(Color.white);
+    	        off_btn.addActionListener(new ActionListener() {
+					public void actionPerformed(ActionEvent e) {
+						adalight.setMode(Mode.OFF);
+					}
+				});
+    	        off_btn.setAlignmentX(Component.CENTER_ALIGNMENT);
+    	        panel.add(off_btn);
+    	        
+    	        JButton adalight_btn = new JButton("Adalight");
+    	        adalight_btn.addActionListener(new ActionListener() {
+					public void actionPerformed(ActionEvent e) {
+						adalight.setMode(Mode.Adalight);
+					}
+				});
+    	        adalight_btn.setAlignmentX(Component.CENTER_ALIGNMENT);
+    	        panel.add(adalight_btn);
+    	        
+    	        JButton colorswirl_btn = new JButton("Colorswirl");
+    	        colorswirl_btn.addActionListener(new ActionListener() {
+					public void actionPerformed(ActionEvent e) {
+						adalight.setMode(Mode.Colorswirl);
+					}
+				});
+    	        colorswirl_btn.setAlignmentX(Component.CENTER_ALIGNMENT);
+    	        panel.add(colorswirl_btn);
+    	        
+    	        JColorChooser colorchooser = new JColorChooser();
+    	        colorchooser.setBackground(background);
+    	        colorchooser.setPreviewPanel(new JPanel());
+    	        colorchooser.getSelectionModel().addChangeListener(new ChangeListener() {
+					@Override
+					public void stateChanged(ChangeEvent e) {
+						adalight.singleColor = colorchooser.getColor();
+						adalight.setMode(Mode.SingleColor);
+					}
+				});
+    	        panel.add(colorchooser);
+    	        
     	        //Display the window.
     	        frame.pack();
-    	        frame.setVisible(true);   
+    	        frame.setVisible(true);
+    	        
+    	        // run adalight cockpit in another thread indefinitely
+    	        new Thread() {
+    	            @Override public void run() {
+    	              setPriority( Thread.MAX_PRIORITY );
+    	              while ( true )
+    	            	  adalight.draw();
+    	            }
+    	        }.start();
             }
         });
 	}
