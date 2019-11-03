@@ -7,7 +7,6 @@ import java.awt.image.*;
 import java.util.Timer;
 import java.util.TimerTask;
 
-
 public class Adalight extends PApplet {
 
 	private static final long serialVersionUID = -69884399989157722L;
@@ -19,15 +18,27 @@ public class Adalight extends PApplet {
 	}
 
 	public void setMode(Mode mode) {
+		
+		System.out.println("setting mode to "+mode);
+		drawthread = null;
+		timer.cancel();
+		
 		this.mode = mode;
 		if(mode == Mode.OFF)
 			this.draw_off();
+		else if(mode == Mode.Adalight || mode == Mode.Colorswirl) {
+			startDrawthread();
+		}
+			
 	}
 	
 	// this is for single color draw only
 	// we dont want that to be done the whole time but just sometimes so the lights dont die :)
 	Timer timer = null;
 	public void setMode(Color c) {
+		
+		drawthread = null;
+		
 		this.mode = Mode.SingleColor;
 		this.singleColor = c;
 		this.draw_singleColor();
@@ -42,6 +53,23 @@ public class Adalight extends PApplet {
 				draw_singleColor();
 			}
 		}, 0, 5000);
+	}
+	
+	// the draw thread for the more dynamic drawing modes
+	private Thread drawthread = null;
+	private void startDrawthread(){
+		drawthread = new Thread() {
+	        @Override public void run() {
+	        	Thread thisThread = Thread.currentThread();
+	        	while (drawthread == thisThread) {
+	        		if(mode == Mode.Adalight)
+	        			draw_adalight();
+	        		else if(mode == Mode.Colorswirl)
+	    				draw_colorswirl();
+	        	}
+	        }
+	    };
+	    drawthread.start();
 	}
 	
 	// CONFIGURABLE PROGRAM CONSTANTS --------------------------------------------
@@ -147,32 +175,30 @@ public class Adalight extends PApplet {
     
 	// GLOBAL VARIABLES ---- You probably won't need to modify any of this -------
 
-	byte[]           serialData  = new byte[6 + leds.length * 3];
-	short[][]        ledColor    = new short[leds.length][3],
+    private byte[]           serialData  = new byte[6 + leds.length * 3];
+	private short[][]        ledColor    = new short[leds.length][3],
 	                 prevColor   = new short[leds.length][3];
-	byte[][]         gamma       = new byte[256][3];
-	int              nDisplays   = displays.length;
-	Robot[]          bot         = new Robot[displays.length];
-	Rectangle[]      dispBounds  = new Rectangle[displays.length],
+	private byte[][]         gamma       = new byte[256][3];
+	private int              nDisplays   = displays.length;
+	private Robot[]          bot         = new Robot[displays.length];
+	private Rectangle[]      dispBounds  = new Rectangle[displays.length],
 	                 ledBounds;  // Alloc'd only if per-LED captures
-	int[][]          pixelOffset = new int[leds.length][256],
+	private int[][]          pixelOffset = new int[leds.length][256],
 	                 screenData; // Alloc'd only if full-screen captures
-	Serial           port;
-	DisposeHandler   dh; // For disabling LEDs on exit
+	private Serial           port;
 
-	Color			 singleColor = new Color(0, 0, 0);
+	private Color			 singleColor = new Color(0, 0, 0);
 	
 	// INITIALIZATION ------------------------------------------------------------
 
-	public void setup() {
+	public Adalight() {
+		
 	  GraphicsEnvironment     ge;
 	  GraphicsConfiguration[] gc;
 	  GraphicsDevice[]        gd;
 	  int                     d, i, row, col;
 	  int[]                   x = new int[16], y = new int[16];
 	  double                   f, range, step, start;
-
-	  dh = new DisposeHandler(this); // Init DisposeHandler ASAP
 
 	  // Open serial port.  As written here, this assumes the Arduino is the
 	  // first/only serial device on the system.  If that's not the case,
@@ -274,26 +300,7 @@ public class Adalight extends PApplet {
 	  }
 	}
 
-	// Open and return serial connection to Arduino running LEDstream code.  This
-	// attempts to open and read from each serial device on the system, until the
-	// matching "Ada\n" acknowledgement string is found.  Due to the serial
-	// timeout, if you have multiple serial devices/ports and the Arduino is late
-	// in the list, this can take seemingly forever...so if you KNOW the Arduino
-	// will always be on a specific port (e.g. "COM6"), you might want to comment
-	// out most of this to bypass the checks and instead just open that port
-	// directly!  (Modify last line in this method with the serial port name.)
-
-	// PER_FRAME PROCESSING ------------------------------------------------------
-
-	public void draw () {
-		if(this.mode == Mode.Adalight)
-			draw_adalight();
-	}
-
 	public void draw_singleColor() {
-		
-		System.out.println(this.singleColor.getRed()+" "+this.singleColor.getGreen()+" "+this.singleColor.getBlue());
-		
 		int j = 6;          // Serial led data follows header / magic word
 		for(int i=0; i<leds.length; i++) {  // For each LED...
 			serialData[j++]  = (byte)this.singleColor.getRed();
@@ -303,10 +310,85 @@ public class Adalight extends PApplet {
 		if(port != null) port.write(serialData); // Issue data to Arduino
 	}
 	
+	// colorswirl vars
+	private float sine1 = 0.0f;
+	private int hue1  = 0;
+	private float sine2 = sine1;
+	private int hue2  = hue1;
+	int    bright, lo, r, g, b, t, prev, frame = 0;
+	
+	private void draw_colorswirl() {
+		
+	    // Start at position 6, after the LED header/magic word
+	    for (int i = 6; i < serialData.length; ) {
+	      // Fixed-point hue-to-RGB conversion.  'hue2' is an integer in the
+	      // range of 0 to 1535, where 0 = red, 256 = yellow, 512 = green, etc.
+	      // The high byte (0-5) corresponds to the sextant within the color
+	      // wheel, while the low byte (0-255) is the fractional part between
+	      // the primary/secondary colors.
+	      lo = hue2 & 255;
+	      switch((hue2 >> 8) % 6) {
+	      case 0:
+	        r = 255;
+	        g = lo;
+	        b = 0;
+	        break;
+	      case 1:
+	        r = 255 - lo;
+	        g = 255;
+	        b = 0;
+	        break;
+	      case 2:
+	        r = 0;
+	        g = 255;
+	        b = lo;
+	        break;
+	      case 3:
+	        r = 0;
+	        g = 255 - lo;
+	        b = 255;
+	        break;
+	      case 4:
+	        r = lo;
+	        g = 0;
+	        b = 255;
+	        break;
+	      default:
+	        r = 255;
+	        g = 0;
+	        b = 255 - lo;
+	        break;
+	      }
+
+	      // Resulting hue is multiplied by brightness in the range of 0 to 255
+	      // (0 = off, 255 = brightest).  Gamma corrrection (the 'pow' function
+	      // here) adjusts the brightness to be more perceptually linear.
+	      bright      = (int) Math.round( pow((float)(0.5 + sin(sine2) * 0.5), 2.8f) * 255.0 );
+	      serialData[i++] = (byte)((r * bright) / 255);
+	      serialData[i++] = (byte)((g * bright) / 255);
+	      serialData[i++] = (byte)((b * bright) / 255);
+
+	      // Each pixel is slightly offset in both hue and brightness
+	      hue2  += 40;
+	      sine2 += 0.3;
+	    }
+
+	    // Slowly rotate hue and brightness in opposite directions
+	    hue1   = (hue1 + 4) % 1536;
+	    sine1 -= .03;
+
+	    this.port.write(serialData);
+	    try {
+			drawthread.sleep(500);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+	
 	private void draw_adalight() {
 		BufferedImage img;
-		  int           d, i, j, o, c, weight, rb, g, sum, deficit, s2;
-		  int[]         pxls, offs;
+		int           d, i, j, o, c, weight, rb, g, sum, deficit, s2;
+		int[]         pxls, offs;
 
 		  if(useFullScreenCaps) {
 		    // Capture each screen in the displays array.
@@ -397,24 +479,5 @@ public class Adalight extends PApplet {
 			serialData[j++]  = 0;
 		}
 		if(port != null) port.write(serialData); // Issue data to Arduino
-	}
-	
-	// CLEANUP -------------------------------------------------------------------
-
-	// The DisposeHandler is called on program exit (but before the Serial library
-	// is shutdown), in order to turn off the LEDs (reportedly more reliable than
-	// stop()).  Seems to work for the window close box and escape key exit, but
-	// not the 'Quit' menu option.  Thanks to phi.lho in the Processing forums.
-
-	public class DisposeHandler {
-	  DisposeHandler(PApplet pa) {
-	    pa.registerDispose(this);
-	  }
-	  public void dispose() {
-	    // Fill serialData (after header) with 0's, and issue to Arduino...
-//	    Arrays.fill(serialData, 6, serialData.length, (byte)0);
-	    java.util.Arrays.fill(serialData, 6, serialData.length, (byte)0);
-	    if(port != null) port.write(serialData);
-	  }
 	}
 }

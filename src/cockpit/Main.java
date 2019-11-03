@@ -3,7 +3,6 @@ package cockpit;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.GridBagLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
@@ -27,10 +26,9 @@ public class Main {
             public void run() {
             	
             	Adalight adalight = new Adalight();
-    	        adalight.setup();
     	        
     	        Color background = new Color(255,255,255);
-            	
+    	        
             	//Create and set up the window.
     	        JFrame frame = new JFrame("Adalight Cockpit");
     	        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -88,17 +86,6 @@ public class Main {
     	        //Display the window.
     	        frame.pack();
     	        frame.setVisible(true);
-    	        
-    	        // run adalight cockpit in another thread indefinitely
-    	        Thread drawthread = new Thread() {
-    	            @Override public void run() {
-    	              setPriority( Thread.MAX_PRIORITY );
-    	              while ( true )
-    	            	  adalight.draw();
-    	            }
-    	        };
-    	        
-//    	        drawthread.start();
             }
         });
 	}
