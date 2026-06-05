@@ -1,0 +1,19 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"editor.formatOnSave": true,
+		"java.configuration.updateBuildConfiguration": "automatic"
+	},
+	"extensions": {
+		"recommendations": [
+			"redhat.vscode-xml",
+			"vscjava.vscode-maven",
+			"vscjava.vscode-java-debug",
+			"redhat.java"
+		]
+	}
+}
