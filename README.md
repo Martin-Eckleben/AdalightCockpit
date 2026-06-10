@@ -1,13 +1,7 @@
 # AdalightCockpit
 
-<style>
-  .gridContainer{
-    display: grid;
-    grid: repeat(3, auto) / repeat(2, 1fr);
-    gap: 12px;
-  }
-</style>
-
+| | |
+|---:|:---|
 | ![Img A](res/Screenshot_2.jpg) | ![Img B](res/Screenshot_3.jpg) |
 | ![Img C](res/Screenshot_4.jpg) | ![Img D](res/Screenshot_5.jpg) |
 | ![Img E](res/Screenshot_6.jpg) | ![Img F](res/Screenshot_1.jpg) |
