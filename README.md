@@ -1,17 +1,21 @@
 # AdalightCockpit
 
-<p>
-  <img src="res/Screenshot_2.jpg" alt="Adalight photo 2" width="200" />
-  <img src="res/Screenshot_3.jpg" alt="Adalight photo 3" width="200" />
-</p>
-<p>
-  <img src="res/Screenshot_4.jpg" alt="Adalight photo 4" width="200" />
-  <img src="res/Screenshot_5.jpg" alt="Adalight photo 5" width="200" />
-</p>
-<p>
-  <img src="res/Screenshot_6.jpg" alt="Adalight photo 6" width="200" />
-  <img src="res/Screenshot_1.jpg" alt="AdalightCockpit Screenshot" width="200" />
-</p>
+<style>
+  .gridContainer{
+    display: grid;
+    grid: repeat(3, auto) / repeat(2, 1fr);
+    gap: 12px;
+  }
+</style>
+
+<div class="gridContainer">
+  <img src="res/Screenshot_2.jpg" alt="Adalight photo 2"/>
+  <img src="res/Screenshot_3.jpg" alt="Adalight photo 3"/>
+  <img src="res/Screenshot_4.jpg" alt="Adalight photo 4"/>
+  <img src="res/Screenshot_5.jpg" alt="Adalight photo 5"/>
+  <img src="res/Screenshot_6.jpg" alt="Adalight photo 6"/>
+  <img src="res/Screenshot_1.jpg" alt="AdalightCockpit Screenshot"/>
+</div>
 
 Small Java control panel (cockpit) for my Adalight.
 
