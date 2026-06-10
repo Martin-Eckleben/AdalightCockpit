@@ -314,7 +314,10 @@ public class Adalight extends PApplet {
                     JOptionPane.showMessageDialog(
                             null,
                             "Could not connect to Adalight Arduino. \n" +
-                                    "Errorcode: " + port.getLastErrorCode(),
+                                    "Errorcode: " + port.getLastErrorCode() + "\n" +
+                                    "\n" +
+                                    "13 means your user does not have permission for the device.\n" +
+                                    "Sth. like /dev/ttyACM0",
                             "Connection failed.",
                             JOptionPane.ERROR_MESSAGE);
 
@@ -365,9 +368,6 @@ public class Adalight extends PApplet {
             serialData[j++] = (byte) this.singleColor.getGreen();
             serialData[j++] = (byte) this.singleColor.getBlue();
         }
-
-        System.out.println(port != null);
-        System.out.println(port.isOpen());
 
         if (port != null && port.isOpen())
             port.writeBytes(serialData, serialData.length);
