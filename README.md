@@ -1,14 +1,14 @@
 # AdalightCockpit
 
 
-  <img src="res/Screenshot_2.jpg" width="300" alt="Adalight photo 2"/>
-  <img src="res/Screenshot_3.jpg" width="300" alt="Adalight photo 3"/>
+  <img src="res/Screenshot_2.jpg" width="200" alt="Adalight photo 2"/>
+  <img src="res/Screenshot_3.jpg" width="200" alt="Adalight photo 3"/>
 
-  <img src="res/Screenshot_4.jpg" width="300" alt="Adalight photo 4"/>
-  <img src="res/Screenshot_5.jpg" width="300" alt="Adalight photo 5"/>
+  <img src="res/Screenshot_4.jpg" width="200" alt="Adalight photo 4"/>
+  <img src="res/Screenshot_5.jpg" width="200" alt="Adalight photo 5"/>
 
-  <img src="res/Screenshot_6.jpg" width="300" alt="Adalight photo 6"/>
-  <img src="res/Screenshot_1.jpg" width="300" alt="AdalightCockpit Screenshot"/>
+  <img src="res/Screenshot_6.jpg" width="200" alt="Adalight photo 6"/>
+  <img src="res/Screenshot_1.jpg" width="200" alt="AdalightCockpit Screenshot"/>
 
 <br/>
 <br/>
