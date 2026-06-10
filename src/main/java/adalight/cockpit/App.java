@@ -3,6 +3,7 @@ package adalight.cockpit;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
@@ -42,6 +43,9 @@ public class App {
                 frame.getContentPane().setBackground(background);
 
                 // add ui components
+                JPanel btns = new JPanel(new GridLayout(1, 3)); // 1 row, 3 equal columns
+                btns.setBorder(padding);
+
                 JButton off_btn = new JButton("Off");
                 off_btn.setBackground(Color.black);
                 off_btn.setForeground(Color.white);
@@ -51,7 +55,7 @@ public class App {
                     }
                 });
                 off_btn.setAlignmentX(Component.CENTER_ALIGNMENT);
-                panel.add(off_btn);
+                btns.add(off_btn);
 
                 JButton adalight_btn = new JButton("Adalight");
                 adalight_btn.addActionListener(new ActionListener() {
@@ -60,7 +64,7 @@ public class App {
                     }
                 });
                 adalight_btn.setAlignmentX(Component.CENTER_ALIGNMENT);
-                panel.add(adalight_btn);
+                btns.add(adalight_btn);
 
                 JButton colorswirl_btn = new JButton("Colorswirl");
                 colorswirl_btn.addActionListener(new ActionListener() {
@@ -69,7 +73,9 @@ public class App {
                     }
                 });
                 colorswirl_btn.setAlignmentX(Component.CENTER_ALIGNMENT);
-                panel.add(colorswirl_btn);
+                btns.add(colorswirl_btn);
+
+                panel.add(btns);
 
                 final JColorChooser colorchooser = new JColorChooser();
                 colorchooser.setBackground(background);
