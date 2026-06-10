@@ -16,24 +16,23 @@ import javax.swing.border.Border;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-public class App 
-{
+public class App {
     public static void main(String[] args) {
 
-        //Schedule a job for the event-dispatching thread:
-        //creating and showing this application's GUI.
+        // Schedule a job for the event-dispatching thread:
+        // creating and showing this application's GUI.
         javax.swing.SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-                
+
                 final Adalight adalight = new Adalight();
-                
-                Color background = new Color(255,255,255);
-                
-                //Create and set up the window.
+
+                Color background = new Color(255, 255, 255);
+
+                // Create and set up the window.
                 JFrame frame = new JFrame("Adalight Cockpit");
                 frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
                 frame.setPreferredSize(new Dimension(800, 500));
-                
+
                 JPanel panel = new JPanel();
                 BoxLayout bl = new BoxLayout(panel, BoxLayout.PAGE_AXIS);
                 panel.setLayout(bl);
@@ -41,7 +40,7 @@ public class App
                 panel.setBorder(padding);
                 frame.setContentPane(panel);
                 frame.getContentPane().setBackground(background);
-                
+
                 // add ui components
                 JButton off_btn = new JButton("Off");
                 off_btn.setBackground(Color.black);
@@ -53,7 +52,7 @@ public class App
                 });
                 off_btn.setAlignmentX(Component.CENTER_ALIGNMENT);
                 panel.add(off_btn);
-                
+
                 JButton adalight_btn = new JButton("Adalight");
                 adalight_btn.addActionListener(new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
@@ -62,7 +61,7 @@ public class App
                 });
                 adalight_btn.setAlignmentX(Component.CENTER_ALIGNMENT);
                 panel.add(adalight_btn);
-                
+
                 JButton colorswirl_btn = new JButton("Colorswirl");
                 colorswirl_btn.addActionListener(new ActionListener() {
                     public void actionPerformed(ActionEvent e) {
@@ -71,7 +70,7 @@ public class App
                 });
                 colorswirl_btn.setAlignmentX(Component.CENTER_ALIGNMENT);
                 panel.add(colorswirl_btn);
-                
+
                 final JColorChooser colorchooser = new JColorChooser();
                 colorchooser.setBackground(background);
                 colorchooser.setPreviewPanel(new JPanel());
@@ -82,8 +81,8 @@ public class App
                     }
                 });
                 panel.add(colorchooser);
-                
-                //Display the window.
+
+                // Display the window.
                 frame.pack();
                 frame.setVisible(true);
             }

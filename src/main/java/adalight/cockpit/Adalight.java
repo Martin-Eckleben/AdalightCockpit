@@ -1,78 +1,25 @@
 package adalight.cockpit;
 
+import com.fazecast.jSerialComm.SerialPort;
 import processing.core.PApplet;
-import processing.serial.Serial;
 import java.awt.*;
 import java.awt.image.*;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import javax.swing.JOptionPane;
+
 public class Adalight extends PApplet {
 
     private Mode mode = Mode.OFF;
-
-    public Mode getMode() {
-        return mode;
-    }
-
-    public void setMode(Mode mode) {
-
-        System.out.println("setting mode to " + mode);
-        drawthread = null;
-        timer.cancel();
-
-        this.mode = mode;
-        if (mode == Mode.OFF)
-            this.draw_off();
-        else if (mode == Mode.Adalight || mode == Mode.Colorswirl) {
-            startDrawthread();
-        }
-
-    }
 
     // this is for single color draw only
     // we dont want that to be done the whole time but just sometimes so the lights
     // dont die :)
     Timer timer = null;
 
-    public void setMode(Color c) {
-
-        drawthread = null;
-
-        this.mode = Mode.SingleColor;
-        this.singleColor = c;
-        this.draw_singleColor();
-
-        if (this.timer != null)
-            this.timer.cancel();
-
-        this.timer = new Timer();
-        timer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                draw_singleColor();
-            }
-        }, 0, 5000);
-    }
-
     // the draw thread for the more dynamic drawing modes
     private Thread drawthread = null;
-
-    private void startDrawthread() {
-        drawthread = new Thread() {
-            @Override
-            public void run() {
-                Thread thisThread = Thread.currentThread();
-                while (drawthread == thisThread) {
-                    if (mode == Mode.Adalight)
-                        draw_adalight();
-                    else if (mode == Mode.Colorswirl)
-                        draw_colorswirl();
-                }
-            }
-        };
-        drawthread.start();
-    }
 
     // CONFIGURABLE PROGRAM CONSTANTS --------------------------------------------
 
@@ -180,8 +127,7 @@ public class Adalight extends PApplet {
     // */
     // };
 
-    // GLOBAL VARIABLES
-
+    // GLOBAL vars
     private byte[] serialData = new byte[6 + leds.length * 3];
     private short[][] ledColor = new short[leds.length][3], prevColor = new short[leds.length][3];
     private byte[][] gamma = new byte[256][3];
@@ -189,13 +135,22 @@ public class Adalight extends PApplet {
     private Robot[] bot = new Robot[displays.length];
     private Rectangle[] dispBounds = new Rectangle[displays.length], ledBounds; // Alloc'd only if per-LED captures
     private int[][] pixelOffset = new int[leds.length][256], screenData; // Alloc'd only if full-screen captures
-    private Serial port;
-
+    private SerialPort port = null;
     private Color singleColor = new Color(0, 0, 0);
 
-    // INITIALIZATION ------------------------------------------------------------
+    // COLORSWIRL vars
+    private float sine1 = 0.0f;
+    private int hue1 = 0;
+    private float sine2 = sine1;
+    private int hue2 = hue1;
+    int bright, lo, r, g, b, t, prev, frame = 0;
+
+    // CONSTRUCTORS
+    // ------------------------------------------------------------
 
     public Adalight() {
+
+        connect();
 
         GraphicsEnvironment ge;
         GraphicsConfiguration[] gc;
@@ -203,8 +158,6 @@ public class Adalight extends PApplet {
         int d, i, row, col;
         int[] x = new int[16], y = new int[16];
         double f, range, step, start;
-
-        port = new Serial(this, Serial.list()[0], 115200);
 
         // Initialize screen capture code for each display's dimensions.
         dispBounds = new Rectangle[displays.length];
@@ -291,25 +244,136 @@ public class Adalight extends PApplet {
         }
     }
 
-    public void draw_singleColor() {
+    public Mode getMode() {
+        return mode;
+    }
+
+    // GETTERS SETTERS
+    // ------------------------------------------------------------
+
+    public void setMode(Mode mode) {
+
+        System.out.println("setting mode to " + mode);
+        drawthread = null;
+        if (this.timer != null)
+            this.timer.cancel();
+
+        this.mode = mode;
+        if (mode == Mode.OFF)
+            this.drawOff();
+        else if (mode == Mode.Adalight || mode == Mode.Colorswirl) {
+            startDrawthread();
+        }
+
+    }
+
+    public void setMode(Color c) {
+
+        drawthread = null;
+
+        this.mode = Mode.SingleColor;
+        this.singleColor = c;
+        this.drawSingleColor();
+
+        if (this.timer != null)
+            this.timer.cancel();
+
+        this.timer = new Timer();
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                drawSingleColor();
+            }
+        }, 0, 5000);
+    }
+
+    // METHODS
+    // ------------------------------------------------------------
+
+    private void connect() {
+
+        SerialPort[] ports = SerialPort.getCommPorts();
+
+        if (ports.length < 1)
+            noAdalightArduinoFound();
+
+        for (SerialPort p : SerialPort.getCommPorts()) {
+
+            // If Arduino found - this needs to be more robust in the future if there is
+            // ever public use. TODO
+            if (p.getVendorID() == 0x2341 &&
+                    p.getProductID() == 0x0043) {
+
+                port = p;
+                port.setBaudRate(115200);
+
+                if (port.openPort())
+                    System.out.println("Connected to Adalight Arduino.");
+                else {
+                    System.out.println("Last error: " + port.getLastErrorCode());
+                    JOptionPane.showMessageDialog(
+                            null,
+                            "Could not connect to Adalight Arduino. \n" +
+                                    "Errorcode: " + port.getLastErrorCode(),
+                            "Connection failed.",
+                            JOptionPane.ERROR_MESSAGE);
+
+                    System.exit(1);
+                }
+
+                break;
+            }
+        }
+
+        if (port == null)
+            noAdalightArduinoFound();
+    }
+
+    private void noAdalightArduinoFound() {
+        System.out.println("Failed to open port");
+
+        JOptionPane.showMessageDialog(
+                null,
+                "Could not find a connected Adalight Arduino. \n" +
+                        "Might be a permission issue with /dev/ttyACM0 etc.",
+                "No Adalight Arduino found.",
+                JOptionPane.ERROR_MESSAGE);
+
+        System.exit(1);
+    }
+
+    private void startDrawthread() {
+        drawthread = new Thread() {
+            @Override
+            public void run() {
+                Thread thisThread = Thread.currentThread();
+                while (drawthread == thisThread) {
+                    if (mode == Mode.Adalight)
+                        drawAdalight();
+                    else if (mode == Mode.Colorswirl)
+                        drawColorSwirl();
+                }
+            }
+        };
+        drawthread.start();
+    }
+
+    private void drawSingleColor() {
         int j = 6; // Serial led data follows header / magic word
         for (int i = 0; i < leds.length; i++) { // For each LED...
             serialData[j++] = (byte) this.singleColor.getRed();
             serialData[j++] = (byte) this.singleColor.getGreen();
             serialData[j++] = (byte) this.singleColor.getBlue();
         }
-        if (port != null)
-            port.write(serialData); // Issue data to Arduino
+
+        System.out.println(port != null);
+        System.out.println(port.isOpen());
+
+        if (port != null && port.isOpen())
+            port.writeBytes(serialData, serialData.length);
     }
 
-    // colorswirl vars
-    private float sine1 = 0.0f;
-    private int hue1 = 0;
-    private float sine2 = sine1;
-    private int hue2 = hue1;
-    int bright, lo, r, g, b, t, prev, frame = 0;
-
-    private void draw_colorswirl() {
+    private void drawColorSwirl() {
 
         // Start at position 6, after the LED header/magic word
         for (int i = 6; i < serialData.length;) {
@@ -320,36 +384,36 @@ public class Adalight extends PApplet {
             // the primary/secondary colors.
             lo = hue2 & 255;
             switch ((hue2 >> 8) % 6) {
-            case 0:
-                r = 255;
-                g = lo;
-                b = 0;
-                break;
-            case 1:
-                r = 255 - lo;
-                g = 255;
-                b = 0;
-                break;
-            case 2:
-                r = 0;
-                g = 255;
-                b = lo;
-                break;
-            case 3:
-                r = 0;
-                g = 255 - lo;
-                b = 255;
-                break;
-            case 4:
-                r = lo;
-                g = 0;
-                b = 255;
-                break;
-            default:
-                r = 255;
-                g = 0;
-                b = 255 - lo;
-                break;
+                case 0:
+                    r = 255;
+                    g = lo;
+                    b = 0;
+                    break;
+                case 1:
+                    r = 255 - lo;
+                    g = 255;
+                    b = 0;
+                    break;
+                case 2:
+                    r = 0;
+                    g = 255;
+                    b = lo;
+                    break;
+                case 3:
+                    r = 0;
+                    g = 255 - lo;
+                    b = 255;
+                    break;
+                case 4:
+                    r = lo;
+                    g = 0;
+                    b = 255;
+                    break;
+                default:
+                    r = 255;
+                    g = 0;
+                    b = 255 - lo;
+                    break;
             }
 
             // Resulting hue is multiplied by brightness in the range of 0 to 255
@@ -369,7 +433,7 @@ public class Adalight extends PApplet {
         hue1 = (hue1 + 4) % 1536;
         sine1 -= .03;
 
-        this.port.write(serialData);
+        port.writeBytes(serialData, serialData.length);
         try {
             drawthread.sleep(500);
         } catch (InterruptedException e) {
@@ -377,7 +441,7 @@ public class Adalight extends PApplet {
         }
     }
 
-    private void draw_adalight() {
+    private void drawAdalight() {
         BufferedImage img;
         int d, i, j, o, c, weight, rb, g, sum, deficit, s2;
         int[] pxls, offs;
@@ -454,13 +518,13 @@ public class Adalight extends PApplet {
         }
 
         if (port != null)
-            port.write(serialData); // Issue data to Arduino
+            port.writeBytes(serialData, serialData.length);
 
         // Copy LED color data to prior frame array for next pass
         arraycopy(ledColor, 0, prevColor, 0, ledColor.length);
     }
 
-    private void draw_off() {
+    private void drawOff() {
         int j = 6; // Serial led data follows header / magic word
         for (int i = 0; i < leds.length; i++) { // For each LED...
             serialData[j++] = 0;
@@ -468,6 +532,6 @@ public class Adalight extends PApplet {
             serialData[j++] = 0;
         }
         if (port != null)
-            port.write(serialData); // Issue data to Arduino
+            port.writeBytes(serialData, serialData.length);
     }
 }
