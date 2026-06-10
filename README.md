@@ -8,14 +8,9 @@
   }
 </style>
 
-<div class="gridContainer">
-  <img src="res/Screenshot_2.jpg" alt="Adalight photo 2"/>
-  <img src="res/Screenshot_3.jpg" alt="Adalight photo 3"/>
-  <img src="res/Screenshot_4.jpg" alt="Adalight photo 4"/>
-  <img src="res/Screenshot_5.jpg" alt="Adalight photo 5"/>
-  <img src="res/Screenshot_6.jpg" alt="Adalight photo 6"/>
-  <img src="res/Screenshot_1.jpg" alt="AdalightCockpit Screenshot"/>
-</div>
+| ![Img A](res/Screenshot_2.jpg) | ![Img B](res/Screenshot_3.jpg) |
+| ![Img C](res/Screenshot_4.jpg) | ![Img D](res/Screenshot_5.jpg) |
+| ![Img E](res/Screenshot_6.jpg) | ![Img F](res/Screenshot_1.jpg) |
 
 Small Java control panel (cockpit) for my Adalight.
 
